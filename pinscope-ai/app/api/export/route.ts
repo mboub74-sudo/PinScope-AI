@@ -1,0 +1,2 @@
+import {analyze} from '../../../lib/research';
+export async function GET(req:Request){const keyword=new URL(req.url).searchParams.get('keyword')||'';if(!keyword.trim())return new Response('Keyword required',{status:400});const result=analyze(keyword);const esc=(s:string)=>'"'+s.replace(/"/g,'""')+'"';const csv=['Keyword,Intent,Source',...result.ideas.map(x=>[x.term,x.intent,x.source].map(esc).join(','))].join('\r\n');return new Response('\uFEFF'+csv,{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="pinscope-keywords.csv"'}})}
