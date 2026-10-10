@@ -33,8 +33,15 @@ function parsePinterestHTML(html:string):PinRecord[]{
    for(const [key,val] of Object.entries(o)){if(['user','viewer','context','experiments','advertiser','partner','headers','cookies'].includes(key))continue;walk(val,depth+1)}
   };walk(root,0)
  };
- for(const script of scripts){const trimmed=script.trim();if(trimmed.startsWith('{')||trimmed.startsWith('[')){try{inspect(JSON.parse(trimmed))}catch{}}}
-  for(const marker of ['__PWS_INITIAL_PROPS__','__PWS_DATA__']){if(!script.includes(marker))continue;const m=script.match(/(?:__PWS_INITIAL_PROPS__\s*=\s*)(\{[\s\S]*\})\s*;?$/);if(m){try{inspect(JSON.parse(m[1]))}catch{}}}
+ for(const script of scripts){
+  const trimmed=script.trim();
+  if(trimmed.startsWith('{')||trimmed.startsWith('[')){
+   try{inspect(JSON.parse(trimmed))}catch{}
+  }
+  if(script.includes('__PWS_INITIAL_PROPS__')||script.includes('__PWS_DATA__')){
+   const match=script.match(/__PWS_INITIAL_PROPS__\s*=\s*(\{[\s\S]*\})\s*;?$/);
+   if(match){try{inspect(JSON.parse(match[1]))}catch{}}
+  }
  }
  return [...results.values()].filter(p=>ids.includes(p.url.match(/\/pin\/(\d+)/)?.[1]||'')).slice(0,50);
 }
