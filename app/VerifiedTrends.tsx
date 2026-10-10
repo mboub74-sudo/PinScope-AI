@@ -10,8 +10,8 @@ const pick=(o:Record<string,unknown>,...keys:string[])=>keys.map(k=>o[k]).find(v
 function normalize(o:Record<string,unknown>):PinRecord|null{const title=clean(String(pick(o,'title','pintitle','name')||''));const link=url(pick(o,'url','pinurl','link'));if(!title||!link)return null;return {title,url:link,saves:num(pick(o,'saves','savecount')),likes:num(pick(o,'likes','likecount')),published:date(pick(o,'published','publishedat','date','publicationdate')),source:clean(String(pick(o,'source','provider')||'Imported data'))}};
 
 function parsePinterestHTML(html:string):PinRecord[]{
- const scripts=[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)].map(m=>m[1]);
- const ids=[...new Set([...html.matchAll(/(?:\\/pin\\/|embed\\.html\\?id=)(\\d{8,25})/g)].map(m=>m[1]))];
+ const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
+ const ids=[...new Set([...html.matchAll(/(?:\/pin\/|embed\.html\?id=)(\d{8,25})/g)].map(m=>m[1]))];
  const results=new Map<string,PinRecord>();
  const inspect=(root:unknown)=>{
   const seen=new WeakSet<object>();let visited=0;
@@ -21,7 +21,7 @@ function parsePinterestHTML(html:string):PinRecord[]{
    const o=v as Record<string,unknown>;
    const id=String(o.id??o.pin_id??o.pinId??'');
    const image=Boolean(o.images||o.image_url||o.imageUrl||o.rich_metadata);
-   const pinlike=ids.includes(id)||(id.length>=8&&/^\\d+$/.test(id)&&image&&(o.aggregated_pin_data||o.repin_count||o.created_at||o.description));
+   const pinlike=ids.includes(id)||(id.length>=8&&/^\d+$/.test(id)&&image&&(o.aggregated_pin_data||o.repin_count||o.created_at||o.description));
    if(pinlike){
     const agg=(o.aggregated_pin_data&&typeof o.aggregated_pin_data==='object'?o.aggregated_pin_data:{}) as Record<string,unknown>;
     const title=clean(String(o.title||o.grid_title||o.seo_title||o.description||''));
@@ -34,9 +34,9 @@ function parsePinterestHTML(html:string):PinRecord[]{
   };walk(root,0)
  };
  for(const script of scripts){const trimmed=script.trim();if(trimmed.startsWith('{')||trimmed.startsWith('[')){try{inspect(JSON.parse(trimmed))}catch{}}}
-  for(const marker of ['__PWS_INITIAL_PROPS__','__PWS_DATA__']){if(!script.includes(marker))continue;const m=script.match(/(?:__PWS_INITIAL_PROPS__\\s*=\\s*)(\\{[\\s\\S]*\\})\\s*;?$/);if(m){try{inspect(JSON.parse(m[1]))}catch{}}}
+  for(const marker of ['__PWS_INITIAL_PROPS__','__PWS_DATA__']){if(!script.includes(marker))continue;const m=script.match(/(?:__PWS_INITIAL_PROPS__\s*=\s*)(\{[\s\S]*\})\s*;?$/);if(m){try{inspect(JSON.parse(m[1]))}catch{}}}
  }
- return [...results.values()].filter(p=>ids.includes(p.url.match(/\\/pin\\/(\\d+)/)?.[1]||'')).slice(0,50);
+ return [...results.values()].filter(p=>ids.includes(p.url.match(/\/pin\/(\d+)/)?.[1]||'')).slice(0,50);
 }
 
 const escape=(s:string)=>'"'+s.replace(/"/g,'""')+'"';
