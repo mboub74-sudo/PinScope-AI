@@ -3,11 +3,11 @@ import {useMemo,useState} from 'react';
 
 type Pin={id:string;title:string;url:string;saves:number|null;likes:number|null;published:string|null;source:string};
 type Ranked=Pin & {days:number|null;rate:number|null};
-const toNumber=(value:unknown):number|null=>typeof value==='number'&&Number.isFinite(value)&&value>=0?value:typeof value==='string'&&/^\\d+$/.test(value)?Number(value):null;
+const toNumber=(value:unknown):number|null=>typeof value==='number'&&Number.isFinite(value)&&value>=0?value:typeof value==='string'&&/^\d+$/.test(value)?Number(value):null;
 function parseHtml(html:string):Pin[]{
  const found=new Map<string,Pin>();
- const script=/<script\\b[^>]*id=["']__PWS_INITIAL_PROPS__["'][^>]*>([\\s\\S]*?)<\\/script>/i.exec(html);
- const fallback=/<script\\b[^>]*id=["']__PWS_DATA__["'][^>]*>([\\s\\S]*?)<\\/script>/i.exec(html);
+ const script=/<script\b[^>]*id=["']__PWS_INITIAL_PROPS__["'][^>]*>([\s\S]*?)<\/script>/i.exec(html);
+ const fallback=/<script\b[^>]*id=["']__PWS_DATA__["'][^>]*>([\s\S]*?)<\/script>/i.exec(html);
  const sources=[script?.[1],fallback?.[1]].filter((s):s is string=>Boolean(s));
  for(const source of sources){
   try{
@@ -24,7 +24,7 @@ function parseHtml(html:string):Pin[]{
      seen.add(value);
      if(Array.isArray(value)){for(const child of value)walk(child,depth+1);return}
      const obj=value as Record<string,unknown>;
-     if(/^\\d{8,25}$/.test(String(obj.id||''))&&(obj.aggregated_pin_data||obj.grid_title||obj.images))add(obj);
+     if(/^\d{8,25}$/.test(String(obj.id||''))&&(obj.aggregated_pin_data||obj.grid_title||obj.images))add(obj);
      for(const [key,child] of Object.entries(obj)){
       if(['context','experiments','user','partner','advertiser','cookies','headers','viewer'].includes(key))continue;
       walk(child,depth+1);
@@ -38,8 +38,8 @@ function parseHtml(html:string):Pin[]{
   if(!value||typeof value!=='object')return;
   const o=value as Record<string,unknown>;
   const id=String(o.id||'');
-  if(!/^\\d{8,25}$/.test(id))return;
-  const title=String(o.title||o.grid_title||o.description||'').replace(/\\s+/g,' ').trim();
+  if(!/^\d{8,25}$/.test(id))return;
+  const title=String(o.title||o.grid_title||o.description||'').replace(/\s+/g,' ').trim();
   if(!title)return;
   const agg=o.aggregated_pin_data as Record<string,unknown>|undefined;
   const stats=agg?.aggregated_stats as Record<string,unknown>|undefined;
@@ -66,7 +66,7 @@ function exportCsv(items:Ranked[],name:string){
  const escape=(v:unknown)=>'"'+String(v??'N/A').replace(/"/g,'""')+'"';
  const header=['Rank','Title','Pin URL','Saves','Likes','Published','Age (days)','Saves / Day','Source'];
  const lines=[header.join(','),...items.map((p,i)=>[i+1,p.title,p.url,p.saves,p.likes,p.published,p.days,p.rate===null?null:p.rate.toFixed(2),p.source].map(escape).join(','))];
- const blob=new Blob(['\\ufeff'+lines.join('\\r\\n')],{type:'text/csv;charset=utf-8'});
+ const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
  const href=URL.createObjectURL(blob);const link=document.createElement('a');link.href=href;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(href),1000);
 }
 export default function WeeklyTrending({onPins}:{onPins?:(pins:{title:string;url:string;saves:number|null;likes:number|null;published:string|null;source:string}[])=>void}){
